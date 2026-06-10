@@ -28,6 +28,9 @@ class ChatThread {
 /// transcript. Resolving a money approval posts an immutable ledger row — the
 /// Approvals → Ledger spine the product is built around.
 class AppStore extends ChangeNotifier {
+  final SfRole role;
+  final List<Student> students;
+  final List<Branch> branches;
   final List<Approval> approvals;
   final List<LedgerEntry> ledger;
   final List<Anomaly> anomalies;
@@ -36,6 +39,9 @@ class AppStore extends ChangeNotifier {
   final List<AiTurn> chat = [];
 
   AppStore({
+    required this.role,
+    required this.students,
+    required this.branches,
     required this.approvals,
     required this.ledger,
     required this.anomalies,
@@ -43,13 +49,19 @@ class AppStore extends ChangeNotifier {
     required this.threads,
   });
 
-  /// Build the initial demo state from the seed data.
-  factory AppStore.seed() => AppStore(
-        approvals: List<Approval>.from(kApprovals),
-        ledger: List<LedgerEntry>.from(kLedgerSeed),
+  /// Headline KPI numbers for this console's dashboard.
+  DashStats get stats => kDashStats[role]!;
+
+  /// Build the demo state for [role] — each console gets its own slice of data.
+  factory AppStore.seed(SfRole role) => AppStore(
+        role: role,
+        students: studentsFor(role),
+        branches: branchesFor(role),
+        approvals: List<Approval>.from(approvalsFor(role)),
+        ledger: List<LedgerEntry>.from(ledgerFor(role)),
         anomalies: List<Anomaly>.from(kAnomalies),
         cases: List<AuditCase>.from(kCases),
-        threads: kThreads
+        threads: threadsFor(role)
             .map((t) => ChatThread(t, [ChatMsg(t.last, mine: false)]))
             .toList(),
       );

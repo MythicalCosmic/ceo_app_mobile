@@ -60,7 +60,21 @@ class _ConsoleState extends State<Console> {
                 child: MediaQuery.removePadding(
                   context: context,
                   removeTop: true,
-                  child: _screen(),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 320),
+                    switchInCurve: Curves.easeOutCubic,
+                    transitionBuilder: (child, anim) => FadeTransition(
+                      opacity: anim,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.025),
+                          end: Offset.zero,
+                        ).animate(anim),
+                        child: child,
+                      ),
+                    ),
+                    child: KeyedSubtree(key: ValueKey(tab), child: _screen()),
+                  ),
                 ),
               ),
               _TabBar(
@@ -105,21 +119,32 @@ class _TabBar extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOut,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: current == t.id ? accent : Colors.transparent,
                           borderRadius: BorderRadius.circular(11),
                         ),
-                        child: Icon(t.icon, size: 21, color: current == t.id ? Colors.white : colors.muted),
+                        child: AnimatedScale(
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutBack,
+                          scale: current == t.id ? 1.0 : 0.92,
+                          child: Icon(t.icon,
+                              size: 21, color: current == t.id ? Colors.white : colors.muted),
+                        ),
                       ),
                       const SizedBox(height: 3),
-                      Text(t.label,
-                          style: TextStyle(
-                              fontFamily: SfType.ui,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w600,
-                              color: current == t.id ? accent : colors.muted)),
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 260),
+                        style: TextStyle(
+                            fontFamily: SfType.ui,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                            color: current == t.id ? accent : colors.muted),
+                        child: Text(t.label),
+                      ),
                     ],
                   ),
                 ),

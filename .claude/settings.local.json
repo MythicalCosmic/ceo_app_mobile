@@ -58,7 +58,11 @@
       "Bash(curl -s https://pypi.org/pypi/payme-pkg/json)",
       "Bash(flutter doctor *)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8080/)",
-      "Bash(ip -4 addr show)"
+      "Bash(ip -4 addr show)",
+      "Bash(curl -s -o /dev/null -w \"web: HTTP %{http_code}\\\\n\" http://localhost:8080)",
+      "Bash(ip route *)",
+      "Bash(pkill -f \"http.server 8080\")",
+      "Bash(curl -s -m 8 -o /tmp/t.jpg -w \"HTTP %{http_code} size=%{size_download}\\\\n\" https://randomuser.me/api/portraits/men/32.jpg)"
     ]
   }
 }

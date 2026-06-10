@@ -142,7 +142,9 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     if (cfg.role == SfRole.audit) return _AuditDash(cfg: cfg, go: go);
     final c = SfTheme.of(context);
+    final store = AppScope.of(context);
     final ceo = cfg.role == SfRole.ceo;
+    final stats = store.stats;
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -155,17 +157,17 @@ class DashboardScreen extends StatelessWidget {
               _kpiGrid([
                 _Kpi(
                     label: 'Oylik daromad',
-                    value: fmtMoneyShort(ceo ? 1284000000 : 342000000),
+                    value: fmtMoneyShort(stats.revenue),
                     color: c.success,
                     trend: (up: true, v: '12%'),
                     spark: const [60, 66, 63, 72, 70, 78, 82, 80, 88, 94, 98, 100]),
                 _Kpi(
                     label: "O'quvchilar",
-                    value: ceo ? '1 842' : '512',
+                    value: stats.students,
                     trend: (up: true, v: '4%'),
                     spark: const [70, 73, 72, 78, 82, 85, 88, 92, 96, 100]),
-                _Kpi(label: 'Davomat', value: '91.2%', color: c.primary),
-                _Kpi(label: 'Qarzdorlik', value: fmtMoneyShort(ceo ? 84000000 : 22400000), color: c.warn),
+                _Kpi(label: 'Davomat', value: ceo ? '91.2%' : '94.0%', color: c.primary),
+                _Kpi(label: 'Qarzdorlik', value: fmtMoneyShort(stats.debt), color: c.warn),
               ]),
               const SizedBox(height: 12),
               SfCard(
@@ -174,7 +176,7 @@ class DashboardScreen extends StatelessWidget {
                     SfCardHeader('Daromad · 12 oy',
                         link: 'Kassa daftari',
                         onTap: () => Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (_) => LedgerScreen(colors: c)))),
+                            .push(sfPageRoute(LedgerScreen(colors: c)))),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
                       child: AreaChart(
@@ -190,9 +192,7 @@ class DashboardScreen extends StatelessWidget {
               ),
               SfAiCard(
                 badge: 'Strategik',
-                quote: ceo
-                    ? 'Sebzorda churn 6.2% — 2x yuqori. Tekshiring.'
-                    : '38 oila qarzdor. 12 tasi 30 kundan oshgan.',
+                quote: stats.aiQuote,
                 onTap: () => go(ceo ? 'ai' : 'approvals'),
               ),
               if (ceo)
@@ -203,7 +203,7 @@ class DashboardScreen extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                         child: HBars(rows: [
-                          for (final b in kBranches)
+                          for (final b in store.branches)
                             HBarRow(b.name, b.revenue.toDouble(), fmtMoneyShort(b.revenue), b.mark),
                         ]),
                       ),
@@ -473,22 +473,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
   static const _filters = ['Hammasi', 'Qarzdor', 'Riskli', 'Guruh'];
   int sel = 0;
 
-  List<Student> get _filtered {
+  List<Student> _filter(List<Student> all) {
     switch (_filters[sel]) {
       case 'Qarzdor':
-        return kStudents.where((s) => s.debt > 0).toList();
+        return all.where((s) => s.debt > 0).toList();
       case 'Riskli':
-        return kStudents.where((s) => s.attendance < 85 || s.debt >= 1000000).toList();
+        return all.where((s) => s.attendance < 85 || s.debt >= 1000000).toList();
       case 'Guruh':
-        return [...kStudents]..sort((a, b) => a.group.compareTo(b.group));
+        return [...all]..sort((a, b) => a.group.compareTo(b.group));
       default:
-        return kStudents;
+        return all;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final list = _filtered;
+    final list = _filter(AppScope.of(context).students);
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -896,7 +896,7 @@ class ApprovalsScreen extends StatelessWidget {
                 label: 'Daftar',
                 textColor: Colors.white,
                 onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => LedgerScreen(colors: SfTheme.of(context)))),
+                    sfPageRoute(LedgerScreen(colors: SfTheme.of(context)))),
               )
             : null,
       ));
@@ -1010,7 +1010,7 @@ class _LedgerBanner extends StatelessWidget {
     final c = SfTheme.of(context);
     return GestureDetector(
       onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => LedgerScreen(colors: c))),
+          .push(sfPageRoute(LedgerScreen(colors: c))),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         decoration: BoxDecoration(
@@ -1362,17 +1362,18 @@ class BranchesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SfTheme.of(context);
+    final branches = AppScope.of(context).branches;
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        const SfHead(eyebrow: '4 filial', title: 'Filiallar'),
+        SfHead(eyebrow: '${branches.length} filial', title: 'Filiallar'),
         Padding(
           padding: _pad,
           child: Column(
             children: [
-              for (int i = 0; i < kBranches.length; i++)
+              for (int i = 0; i < branches.length; i++)
                 Builder(builder: (context) {
-                  final b = kBranches[i];
+                  final b = branches[i];
                   return GestureDetector(
                     onTap: () => _showBranchSheet(context, b),
                     child: Container(
@@ -2117,7 +2118,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () => Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => ModulesHub(colors: c))),
+                    .push(sfPageRoute(ModulesHub(colors: c))),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
@@ -2220,15 +2221,17 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-  late final List<String> groups = kStudents.map((s) => s.group).toSet().toList();
   int gi = 0;
   final Set<String> absent = {}; // by student name
 
   @override
   Widget build(BuildContext context) {
     final c = widget.colors;
+    final students = AppScope.of(context).students;
+    final groups = students.map((s) => s.group).toSet().toList();
+    if (gi >= groups.length) gi = 0;
     final group = groups[gi];
-    final roster = kStudents.where((s) => s.group == group).toList();
+    final roster = students.where((s) => s.group == group).toList();
     final present = roster.where((s) => !absent.contains(s.name)).length;
     final absentInGroup = roster.where((s) => absent.contains(s.name)).length;
     return SfTheme(
@@ -2417,14 +2420,17 @@ class ModulesHub extends StatelessWidget {
           crossAxisSpacing: 11,
           childAspectRatio: 1.18,
           children: [
-            for (final m in modules)
-              _ModuleTile(
-                icon: m.$1,
-                label: m.$2,
-                ready: m.$3,
-                onTap: m.$4 != null
-                    ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => m.$4!()))
-                    : () => _snack(context, '"${m.$2}" — tez orada (demo)'),
+            for (int i = 0; i < modules.length; i++)
+              _Entrance(
+                delayMs: 45 * i,
+                child: _ModuleTile(
+                  icon: modules[i].$1,
+                  label: modules[i].$2,
+                  ready: modules[i].$3,
+                  onTap: modules[i].$4 != null
+                      ? () => Navigator.of(context).push(sfPageRoute(modules[i].$4!()))
+                      : () => _snack(context, '"${modules[i].$2}" — tez orada (demo)'),
+                ),
               ),
           ],
         ),
@@ -2442,38 +2448,81 @@ class _ModuleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SfTheme.of(context);
-    return Material(
-      color: c.surface,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
+    return SfTap(
+      child: Material(
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            border: Border.all(color: c.border),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: (ready ? c.primary : c.muted).withValues(alpha: 0.13),
-                    borderRadius: BorderRadius.circular(11)),
-                child: Icon(icon, size: 20, color: ready ? c.primary : c.muted),
-              ),
-              const Spacer(),
-              Text(label,
-                  style: TextStyle(fontFamily: SfType.ui, fontSize: 13, fontWeight: FontWeight.w700, color: c.ink)),
-              const SizedBox(height: 5),
-              Pill(ready ? 'Tayyor' : 'Tez orada', tone: ready ? PillTone.success : PillTone.neutral),
-            ],
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(color: c.border),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                      color: (ready ? c.primary : c.muted).withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(11)),
+                  child: Icon(icon, size: 20, color: ready ? c.primary : c.muted),
+                ),
+                const Spacer(),
+                Text(label,
+                    style: TextStyle(fontFamily: SfType.ui, fontSize: 13, fontWeight: FontWeight.w700, color: c.ink)),
+                const SizedBox(height: 5),
+                Pill(ready ? 'Tayyor' : 'Tez orada', tone: ready ? PillTone.success : PillTone.neutral),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One-shot fade + lift entrance, optionally delayed — used to stagger grids/lists.
+class _Entrance extends StatefulWidget {
+  final Widget child;
+  final int delayMs;
+  const _Entrance({required this.child, this.delayMs = 0});
+  @override
+  State<_Entrance> createState() => _EntranceState();
+}
+
+class _EntranceState extends State<_Entrance> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+  late final Animation<double> _a = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(Duration(milliseconds: widget.delayMs), () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _a,
+      builder: (_, child) => Opacity(
+        opacity: _a.value,
+        child: Transform.translate(offset: Offset(0, 16 * (1 - _a.value)), child: child),
+      ),
+      child: widget.child,
     );
   }
 }

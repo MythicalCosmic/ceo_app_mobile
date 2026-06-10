@@ -2,7 +2,70 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'theme.dart';
 
-/// Deterministic warm avatar from initials (mirrors SfAvatar).
+/// Press-to-shrink feedback wrapper. Uses a [Listener] (not GestureDetector) so
+/// it never steals taps from an inner InkWell/onTap — purely a visual accent.
+class SfTap extends StatefulWidget {
+  final Widget child;
+  final double scale;
+  const SfTap({super.key, required this.child, this.scale = 0.96});
+  @override
+  State<SfTap> createState() => _SfTapState();
+}
+
+class _SfTapState extends State<SfTap> {
+  bool _down = false;
+  void _set(bool v) => setState(() => _down = v);
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _set(true),
+      onPointerUp: (_) => _set(false),
+      onPointerCancel: (_) => _set(false),
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Smooth fade + lift page transition for pushed routes.
+Route<T> sfPageRoute<T>(Widget page) => PageRouteBuilder<T>(
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (_, _, _) => page,
+      transitionsBuilder: (_, anim, _, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 0.045), end: Offset.zero)
+                .animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+
+/// Each of the three console users gets a unique branded avatar (gradient +
+/// white initials) so they're recognisable at a glance everywhere they appear.
+const Map<String, List<Color>> kUserAvatars = {
+  'Sardor Rashidov': [Color(0xFFB85535), Color(0xFFD89A2E)],
+  "Dilnoza Yo'ldosheva": [Color(0xFF2E9B8F), Color(0xFF4F7B3B)],
+  'Jamshid Qodirov': [Color(0xFF7A4A82), Color(0xFF2A3D8F)],
+};
+
+/// Real portrait photos (bundled assets) for the three console users.
+const Map<String, String> kUserPhotos = {
+  'Sardor Rashidov': 'assets/avatars/sardor.jpg',
+  "Dilnoza Yo'ldosheva": 'assets/avatars/dilnoza.jpg',
+  'Jamshid Qodirov': 'assets/avatars/jamshid.jpg',
+};
+
+/// Deterministic warm avatar from initials; branded users get a real photo
+/// (with their gradient as the loading/fallback backdrop).
 class SfAvatar extends StatelessWidget {
   final String name;
   final double size;
@@ -18,6 +81,69 @@ class SfAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SfTheme.of(context);
+    // Branded users: a vivid gradient backdrop with their real photo on top.
+    final grad = kUserAvatars[name];
+    if (grad != null) {
+      final photo = kUserPhotos[name];
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: grad, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(size * 0.3),
+          boxShadow: [
+            BoxShadow(
+                color: grad.last.withValues(alpha: 0.32),
+                blurRadius: size * 0.2,
+                offset: Offset(0, size * 0.07)),
+          ],
+        ),
+        alignment: Alignment.center,
+        clipBehavior: Clip.antiAlias,
+        child: photo == null
+            ? Text(
+                _initials,
+                style: TextStyle(
+                  fontFamily: SfType.ui,
+                  fontSize: size * 0.4,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.3,
+                ),
+              )
+            : Image.asset(
+                photo,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                // Soft fade-in once the photo decodes.
+                frameBuilder: (context, child, frame, wasSync) {
+                  if (wasSync) return child;
+                  return AnimatedOpacity(
+                    opacity: frame == null ? 0 : 1,
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOut,
+                    child: child,
+                  );
+                },
+                // If the asset is missing, fall back to white initials.
+                errorBuilder: (_, _, _) => Center(
+                  child: Text(
+                    _initials,
+                    style: TextStyle(
+                      fontFamily: SfType.ui,
+                      fontSize: size * 0.4,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+              ),
+      );
+    }
+    // Everyone else: soft tinted initials, colour derived from the name.
     final palette = [c.primary, c.accent, c.success, const Color(0xFF7A4A82), const Color(0xFF2A3D8F)];
     final hash = name.codeUnits.fold<int>(0, (a, b) => a + b);
     final bg = color ?? palette[hash % palette.length];

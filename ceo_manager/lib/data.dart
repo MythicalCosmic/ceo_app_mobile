@@ -51,6 +51,21 @@ class RoleConfig {
   SfColors get colors => dark ? SfColors.dark : SfColors.light;
 }
 
+/// A demo sign-in account, one per console. The password is shared for the demo
+/// and shown on screen — there is no backend, this is a UX shell only.
+class DemoUser {
+  final SfRole role;
+  final String login;
+  final String password;
+  const DemoUser(this.role, this.login, this.password);
+}
+
+const List<DemoUser> kDemoUsers = [
+  DemoUser(SfRole.ceo, 'sardor', 'starforge'),
+  DemoUser(SfRole.manager, 'dilnoza', 'starforge'),
+  DemoUser(SfRole.audit, 'jamshid', 'starforge'),
+];
+
 const Map<SfRole, RoleConfig> kRoleConfigs = {
   SfRole.ceo: RoleConfig(
     role: SfRole.ceo,
@@ -246,6 +261,7 @@ class Thread {
       {this.unread = 0, this.online = false, this.isGroup = false});
 }
 
+// Manager (Dilnoza · Yunusobod) talks to her teachers and parents.
 const List<Thread> kThreads = [
   Thread('Nigora Karimova', "O'qituvchi · Matematika", "Ertangi yig'ilishga tayyorman", '14:42', online: true),
   Thread("Matematika bo'limi", 'Guruh · 12 a\'zo', 'Siz: Yangi mavzular...', '13:20', isGroup: true),
@@ -253,3 +269,108 @@ const List<Thread> kThreads = [
   Thread('Aziz Tursunov', "O'qituvchi · Ingliz", 'Yangi guruh ochsak?', '11:05', unread: 1, online: true),
   Thread("Qabul bo'limi", 'Guruh · 8 a\'zo', 'Bugun 6 ta yangi lid', 'Du', unread: 3, isGroup: true),
 ];
+
+// CEO (Sardor) talks to branch managers, finance and the board.
+const List<Thread> kThreadsCeo = [
+  Thread("Dilnoza Yo'ldosheva", 'Menejer · Yunusobod', 'Oylik hisobot tayyor', '14:42', online: true),
+  Thread('Filial menejerlari', "Guruh · 4 a'zo", 'Siz: Reyting yangilandi', '13:20', isGroup: true, unread: 1),
+  Thread('Jamshid Qodirov', 'Bosh auditor · Nazorat', "Sebzor bo'yicha signal bor", '12:18', unread: 2),
+  Thread('Aziz Karimov', 'Moliya direktori', 'Byudjet tasdiqlansinmi?', '11:05', online: true),
+  Thread('Kengash', "Guruh · 6 a'zo", 'Keyingi chorak rejasi', 'Du', unread: 3, isGroup: true),
+];
+
+// Audit (Jamshid) talks to the CEO, security, legal and branch managers under review.
+const List<Thread> kThreadsAudit = [
+  Thread('Sardor Rashidov', 'CEO · Boshqaruv', 'Hisobotni kutaman', '15:10', unread: 1),
+  Thread("Xavfsizlik bo'limi", "Guruh · 5 a'zo", 'Kamera loglari yuborildi', '13:48', isGroup: true, online: true),
+  Thread('Sebzor menejeri', 'Filial · Sebzor', 'Kvitansiyalar tayyor', '12:30', unread: 2),
+  Thread("Yuridik bo'lim", "Guruh · 3 a'zo", "Hujjatlar ko'rib chiqildi", '10:15', isGroup: true),
+  Thread('Mirobod menejeri', 'Filial · Mirobod', 'Karta tushuntirishi', 'Du'),
+];
+
+// ── Role-scoped datasets ────────────────────────────────────────────────
+// Each console sees its own slice of the world: the CEO sees all branches,
+// the manager only Yunusobod, the auditor the whole network under review.
+
+/// CEO roster — a cross-branch sample (groups are tagged by branch).
+const List<Student> kStudentsCeo = [
+  Student('Akbarov Akmal', 'Yunusobod · 9-B', 96, 'paid', 0),
+  Student('Azizova Madina', 'Yunusobod · 9-B', 98, 'paid', 0),
+  Student('Bakirov Sherzod', 'Chilonzor · Algebra', 88, 'debt', 600000),
+  Student('Eshmatov Otabek', 'Sebzor · 9-B', 72, 'debt', 1200000),
+  Student('Halimova Zilola', 'Mirobod · 10-V', 95, 'paid', 0),
+  Student('Davronova Sevinch', 'Chilonzor · Mid', 92, 'paid', 0),
+  Student("G'aniyev Jasur", 'Mirobod · 10-V', 89, 'partial', 300000),
+  Student('Ibragimov Sardor', 'Yunusobod · Mid', 91, 'paid', 0),
+  Student('Yusupova Nilufar', 'Sebzor · Beginner', 68, 'debt', 900000),
+  Student('Rustamov Bekzod', 'Chilonzor · 11-A', 84, 'partial', 450000),
+];
+
+/// Manager roster — only Dilnoza's Yunusobod groups.
+const List<Student> kStudentsManager = [
+  Student('Akbarov Akmal', '9-B Algebra', 96, 'paid', 0),
+  Student('Azizova Madina', '9-B Algebra', 98, 'paid', 0),
+  Student('Halimova Zilola', '9-B Algebra', 95, 'paid', 0),
+  Student('Davronova Sevinch', 'Algebra Mid', 92, 'paid', 0),
+  Student('Eshmatov Otabek', '9-B Algebra', 72, 'debt', 1200000),
+  Student('Ibragimov Sardor', 'Algebra Mid', 91, 'paid', 0),
+];
+
+/// Manager only runs a single branch.
+const List<Branch> kBranchesManager = [
+  Branch('Yunusobod', 342000000, 512, 94, 5.2, Color(0xFF4F7B3B)),
+];
+
+/// CEO ledger — branch-level daily flows, larger scale.
+const List<LedgerEntry> kLedgerCeo = [
+  LedgerEntry(
+      id: 'L-9001', title: 'Yunusobod · kunlik tushum', who: 'Filial', amount: 11400000,
+      inflow: true, kind: "To'lov", channel: 'Payme', time: '09:40'),
+  LedgerEntry(
+      id: 'L-9000', title: 'Chilonzor · kunlik tushum', who: 'Filial', amount: 9800000,
+      inflow: true, kind: "To'lov", channel: 'Click', time: '09:20'),
+  LedgerEntry(
+      id: 'L-8999', title: 'Marketing · Instagram', who: 'SMM', amount: 6500000,
+      inflow: false, kind: 'Xarajat', channel: 'Tizim', time: 'Kecha 18:10'),
+  LedgerEntry(
+      id: 'L-8998', title: 'Mirobod · ijara', who: 'Bino', amount: 18000000,
+      inflow: false, kind: 'Ijara', channel: 'Tizim', time: 'Kecha 15:00'),
+  LedgerEntry(
+      id: 'L-8997', title: 'Sebzor · kunlik tushum', who: 'Filial', amount: 5200000,
+      inflow: true, kind: "To'lov", channel: 'Naqd', time: 'Kecha 11:30'),
+];
+
+/// Headline numbers for the dashboard, per console.
+class DashStats {
+  final num revenue;
+  final String students;
+  final num debt;
+  final String aiQuote;
+  const DashStats(
+      {required this.revenue, required this.students, required this.debt, required this.aiQuote});
+}
+
+const Map<SfRole, DashStats> kDashStats = {
+  SfRole.ceo: DashStats(
+      revenue: 1284000000,
+      students: '1 842',
+      debt: 84000000,
+      aiQuote: 'Sebzorda churn 6.2% — 2x yuqori. Tekshiring.'),
+  SfRole.manager: DashStats(
+      revenue: 342000000,
+      students: '512',
+      debt: 22400000,
+      aiQuote: '38 oila qarzdor. 12 tasi 30 kundan oshgan.'),
+  SfRole.audit: DashStats(revenue: 0, students: '0', debt: 0, aiQuote: ''),
+};
+
+// ── Per-role selectors ──────────────────────────────────────────────────
+List<Student> studentsFor(SfRole r) => r == SfRole.manager ? kStudentsManager : kStudentsCeo;
+List<Branch> branchesFor(SfRole r) => r == SfRole.manager ? kBranchesManager : kBranches;
+List<Approval> approvalsFor(SfRole r) => r == SfRole.manager ? kApprovals : const <Approval>[];
+List<LedgerEntry> ledgerFor(SfRole r) => r == SfRole.ceo ? kLedgerCeo : kLedgerSeed;
+List<Thread> threadsFor(SfRole r) => switch (r) {
+      SfRole.ceo => kThreadsCeo,
+      SfRole.manager => kThreads,
+      SfRole.audit => kThreadsAudit,
+    };
