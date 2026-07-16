@@ -205,6 +205,14 @@ const Map<String, List<String>> _strings = {
   'online': ['onlayn', 'онлайн', 'online'],
   'msg_hint': ['Xabar yozing…', 'Напишите сообщение…', 'Type a message…'],
   'ai_hint': ['Savol yozing…', 'Задайте вопрос…', 'Ask a question…'],
+  'chat_profile': ['Profil', 'Профиль', 'Profile'],
+  'chat_group_info': ["Guruh ma'lumoti", 'Информация о группе', 'Group info'],
+  'chat_status': ['Holat', 'Статус', 'Status'],
+  'chat_role': ['Rol', 'Роль', 'Role'],
+  'chat_phone': ['Telefon', 'Телефон', 'Phone'],
+  'chat_members': ["Ishtirokchilar", 'Участники', 'Members'],
+  'chat_offline': ["Hozir tarmoqda emas", 'Сейчас не в сети', 'Currently offline'],
+  'chat_send_message': ['Xabar yozish', 'Написать сообщение', 'Send message'],
 
   // ── Notifications ─────────────────────────────────────────────────────
   'notifs_title': ['Bildirishnomalar', 'Уведомления', 'Notifications'],

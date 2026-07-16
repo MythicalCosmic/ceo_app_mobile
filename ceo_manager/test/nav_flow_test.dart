@@ -4,6 +4,8 @@ import 'package:ceo_manager/settings.dart';
 import 'package:ceo_manager/store.dart';
 import 'package:ceo_manager/data.dart';
 import 'package:ceo_manager/console.dart';
+import 'package:ceo_manager/screens.dart';
+import 'package:ceo_manager/theme.dart';
 
 // Mirror main.dart's real ancestor stack (SettingsScope > AppScope > MaterialApp),
 // then drive the Console exactly like a user — tapping tabs and pushed routes.
@@ -67,4 +69,41 @@ void main() {
     }
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('chat header opens the contact personal cabinet', (t) async {
+    final store = AppStore.seed(SfRole.ceo);
+    await t.pumpWidget(_chatHost(store, ChatScreen(threadIdx: 0, colors: SfColors.light)));
+    await t.pump(const Duration(seconds: 1));
+    await t.tap(find.byKey(const ValueKey('chat-profile-header')));
+    await t.pumpAndSettle();
+    expect(find.byType(ChatCabinetScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat-cabinet')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('student chat header opens the student personal cabinet', (
+    t,
+  ) async {
+    final store = AppStore.seed(SfRole.ceo);
+    await t.pumpWidget(_chatHost(
+      store,
+      StudentChatScreen(student: store.students.first, colors: SfColors.light),
+    ));
+    await t.pump(const Duration(seconds: 1));
+    await t.tap(find.byKey(const ValueKey('student-chat-profile-header')));
+    await t.pumpAndSettle();
+    expect(find.byType(ChatCabinetScreen), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+}
+
+Widget _chatHost(AppStore store, Widget child) {
+  final settings = AppSettings();
+  return SettingsScope(
+    settings: settings,
+    child: AppScope(
+      store: store,
+      child: MaterialApp(home: child),
+    ),
+  );
 }

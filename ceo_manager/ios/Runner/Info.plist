@@ -24,6 +24,12 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used to attach photos and videos to a chat.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is used to record voice messages.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is used to attach photos and videos to a chat.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

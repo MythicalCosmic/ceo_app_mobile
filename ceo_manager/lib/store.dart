@@ -9,11 +9,25 @@ class AiTurn {
   const AiTurn(this.text, {required this.mine});
 }
 
+/// Payload carried by a message in a conversation thread. Files stay local in
+/// this offline demo; swapping the store for a backend later only needs to
+/// upload [path] and retain its remote URL.
+enum ChatMessageKind { text, image, video, voice }
+
 /// One message inside a conversation thread.
 class ChatMsg {
   final String text;
   final bool mine;
-  const ChatMsg(this.text, {required this.mine});
+  final ChatMessageKind kind;
+  final String? path;
+  final Duration? duration;
+  const ChatMsg(
+    this.text, {
+    required this.mine,
+    this.kind = ChatMessageKind.text,
+    this.path,
+    this.duration,
+  });
 }
 
 /// A live conversation: its [meta] (from [Thread]) plus a growing message log.
@@ -50,12 +64,18 @@ class AppStore extends ChangeNotifier {
     AiConversation('Yangi suhbat', []),
     AiConversation('Churn tahlili · Sebzor', const [
       AiTurn('Sebzorda churn nega oshdi?', mine: true),
-      AiTurn("Sebzorda churn 6.2% — 3 o'qituvchi almashdi va 6 o'quvchi davomati tushdi. "
-          "Ota-onalarga qo'ng'iroq tavsiya etaman.", mine: false),
+      AiTurn(
+        "Sebzorda churn 6.2% — 3 o'qituvchi almashdi va 6 o'quvchi davomati tushdi. "
+        "Ota-onalarga qo'ng'iroq tavsiya etaman.",
+        mine: false,
+      ),
     ]),
     AiConversation('Daromad prognozi', const [
       AiTurn('Kelgusi oy daromadi qancha?', mine: true),
-      AiTurn("~1.34 mlrd so'm (+4%). Ingliz B2 yangi guruhi +52 mln so'm qo'shadi.", mine: false),
+      AiTurn(
+        "~1.34 mlrd so'm (+4%). Ingliz B2 yangi guruhi +52 mln so'm qo'shadi.",
+        mine: false,
+      ),
     ]),
   ];
   int activeConv = 0;
@@ -101,8 +121,12 @@ class AppStore extends ChangeNotifier {
   String? nameOverride;
   String? titleOverride;
   void setProfile({String? name, String? title}) {
-    if (name != null) nameOverride = name.trim().isEmpty ? null : name.trim();
-    if (title != null) titleOverride = title.trim().isEmpty ? null : title.trim();
+    if (name != null) {
+      nameOverride = name.trim().isEmpty ? null : name.trim();
+    }
+    if (title != null) {
+      titleOverride = title.trim().isEmpty ? null : title.trim();
+    }
     notifyListeners();
   }
 
@@ -122,17 +146,17 @@ class AppStore extends ChangeNotifier {
 
   /// Build the demo state for [role] — each console gets its own slice of data.
   factory AppStore.seed(SfRole role) => AppStore(
-        role: role,
-        students: studentsFor(role),
-        branches: branchesFor(role),
-        approvals: List<Approval>.from(approvalsFor(role)),
-        ledger: List<LedgerEntry>.from(ledgerFor(role)),
-        anomalies: List<Anomaly>.from(kAnomalies),
-        cases: List<AuditCase>.from(kCases),
-        threads: threadsFor(role)
-            .map((t) => ChatThread(t, [ChatMsg(t.last, mine: false)]))
-            .toList(),
-      );
+    role: role,
+    students: studentsFor(role),
+    branches: branchesFor(role),
+    approvals: List<Approval>.from(approvalsFor(role)),
+    ledger: List<LedgerEntry>.from(ledgerFor(role)),
+    anomalies: List<Anomaly>.from(kAnomalies),
+    cases: List<AuditCase>.from(kCases),
+    threads: threadsFor(
+      role,
+    ).map((t) => ChatThread(t, [ChatMsg(t.last, mine: false)])).toList(),
+  );
 
   int get pendingCount => approvals.length;
 
@@ -158,7 +182,19 @@ class AppStore extends ChangeNotifier {
   void anomalyToCase(Anomaly a) {
     anomalies.remove(a);
     final id = 'C-${(_caseSeq++).toString().padLeft(4, '0')}';
-    cases.insert(0, AuditCase(id, '${a.branch} · ${a.title}', a.sev == 'low' ? 'low' : a.sev == 'med' ? 'med' : 'high', 'open'));
+    cases.insert(
+      0,
+      AuditCase(
+        id,
+        '${a.branch} · ${a.title}',
+        a.sev == 'low'
+            ? 'low'
+            : a.sev == 'med'
+            ? 'med'
+            : 'high',
+        'open',
+      ),
+    );
     _caseStatus[id] = 'open';
     notifyListeners();
   }
@@ -168,6 +204,27 @@ class AppStore extends ChangeNotifier {
     final t = text.trim();
     if (t.isEmpty) return;
     threads[threadIdx].messages.add(ChatMsg(t, mine: true));
+    notifyListeners();
+  }
+
+  /// Adds an image, video, or recorded voice note to the live local thread.
+  void sendAttachment(
+    int threadIdx, {
+    required ChatMessageKind kind,
+    required String path,
+    String? label,
+    Duration? duration,
+  }) {
+    assert(kind != ChatMessageKind.text);
+    threads[threadIdx].messages.add(
+      ChatMsg(
+        label ?? '',
+        mine: true,
+        kind: kind,
+        path: path,
+        duration: duration,
+      ),
+    );
     notifyListeners();
   }
 
@@ -223,7 +280,9 @@ class AppStore extends ChangeNotifier {
           "3 o'qituvchi almashdi va 6 o'quvchining davomati 75% dan tushdi. "
           'Ota-onalarga bugun qo‘ng‘iroq qilishni tavsiya qilaman.';
     }
-    if (s.contains('daromad') || s.contains('prognoz') || s.contains('revenue')) {
+    if (s.contains('daromad') ||
+        s.contains('prognoz') ||
+        s.contains('revenue')) {
       return 'Joriy sur’atda kelgusi oy daromadi ~1.34 mlrd so‘m (+4%). '
           'Ingliz B2 to‘ldi — yangi guruh oyiga +52 mln so‘m qo‘shadi.';
     }
@@ -243,7 +302,7 @@ class AppStore extends ChangeNotifier {
 /// Inherited access to [AppStore]; rebuilds dependents on [notifyListeners].
 class AppScope extends InheritedNotifier<AppStore> {
   const AppScope({super.key, required AppStore store, required super.child})
-      : super(notifier: store);
+    : super(notifier: store);
 
   static AppStore of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
